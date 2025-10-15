@@ -1,6 +1,20 @@
-namespace myapp;
 
-public class LogHelper
+using Serilog;
+using Serilog.Events;
+
+namespace myapp
 {
-    // TODO: Implement the log helper logic
+    public static class LogHelper
+    {
+        public static void SetupSerilog()
+        {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                .Enrich.FromLogContext()
+                .WriteTo.Console()
+                .WriteTo.Seq("http://localhost:5341")
+                .CreateLogger();
+        }
+    }
 }

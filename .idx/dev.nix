@@ -12,7 +12,17 @@
     extensions = [ "muhammad-sammy.csharp" "rangav.vscode-thunder-client" ];
     workspace = {
       # Runs when a workspace is (re)started
-      onStart = { run-server = "dotnet watch --urls=http://localhost:3000"; };
+      onStart = { run-server = "dotnet watch --urls=http://0.0.0.0:8081"; };
     };
+    previews = [
+      {
+        # The command to run to start the server
+        command = ["dotnet", "watch", "--urls=http://0.0.0.0:8081"];
+        # The port the server will be listening on
+        port = 8081;
+        # The label to display in the web preview
+        label = "backend";
+      }
+    ];
   };
 }
