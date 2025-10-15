@@ -30,6 +30,8 @@ try
 
     // MVC Services
     services.AddControllers();
+    services.AddEndpointsApiExplorer();
+    services.AddSwaggerGen();
 
     // Plugin Engine
     var pluginEngine = new PluginEngine();
@@ -95,6 +97,8 @@ try
     }
 
     // Configure the HTTP request pipeline.
+    app.UseSwagger();
+    app.UseSwaggerUI();
     app.UseGlobalExceptionMiddleware();
     app.UseRouting();
     app.MapControllers(); // Map controller routes

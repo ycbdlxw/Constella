@@ -6,6 +6,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="FluentMigrator.Runner" Version="7.1.0" />
@@ -13,6 +18,7 @@
     <PackageReference Include="Serilog" Version="3.1.1" />
     <PackageReference Include="Serilog.AspNetCore" Version="7.0.0" />
     <PackageReference Include="Serilog.Sinks.Seq" Version="5.2.2" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
   </ItemGroup>
 
 </Project>
