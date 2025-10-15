@@ -1,12 +1,3 @@
-当然可以 ✅
-下面是为你的.NET平台专用、企业级、团队可直接使用的正式文档版本：
-**📘 constitution.md（系统核心宪章 / The Constitution for .NET Platform）**
-格式采用 Markdown 标准，可直接放入仓库根目录（如 `/docs/constitution.md`）。
-已完全按照你的全部要求（含 Windows Service、日志体系、Map参数模式）整合完成。
-
----
-
-````markdown
 # 🏛️ 系统核心宪章 (The Constitution for .NET Platform)
 
 > **版本**：v2.0 企业服务版  
@@ -326,4 +317,324 @@ public async Task<ApiResponse> SaveAsync(Dictionary<string, object> map)
 
 **📜 本文件为平台级系统宪章，是一切架构、开发、部署、维护的最高准则。**
 
+---
+---
+
+# 🏛️ The Constitution for .NET Platform
+
+> **Version**: v2.0 Enterprise Service Edition  
+> **Objective**: To implement a highly extensible, data-driven, plugin-based, deployable, and observable enterprise-grade application platform.  
+> **Scope**: This constitution applies to the platform-level service and all its sub-modules, plugins, and external integration components.  
+
+---
+
+## I. Core Philosophy
+
+### 1. Data Drives Everything
+Any business logic, validation rules, or API behavior should be primarily driven by configuration tables:
+- `TableAttributeConfig`
+- `ColumnAttributeConfig`
+- `ColumnValidationRule`
+
+> 🧠 Before writing any C# code, ask yourself:
+> "Can this feature be implemented through database configuration?"
+
+---
+
+### 2. Configuration Over Code
+If a feature can be accomplished through database configuration, **it is strictly forbidden to hard-code it in C#**.  
+Configuration should be the primary driving force; code is merely the execution container.
+
+---
+
+### 3. Pluginize Everything
+All independent business modules (e.g., File Service, AI Service, OCR Recognition) should exist as plugins.  
+Plugins communicate with the `PluginEngine` through the `IPlugin` interface and can be loaded and unloaded independently.  
+
+---
+
+### 4. The "Three Nos & Three Lows" Principle
+| Principle | Content |
+|---|---|
+| **Three Nos** | No over-engineering, no complex architecture, no breaking existing functionality |
+| **Three Lows** | Fewer files, less code, fewer calls |
+
+> 🎯 Strive for simplicity, efficiency, and low coupling.
+
+---
+
+### 5. Servitization and Deployability
+The system must be runnable in the following three modes:
+- ✅ **Windows Service Mode**
+- ✅ **Console Debug Mode**
+- ✅ **Docker Container Mode**
+
+In `Program.cs`:
+```csharp
+Host.CreateDefaultBuilder(args)
+    .UseWindowsService()
+    .ConfigureServices((context, services) => {
+        services.AddHostedService<CoreHostService>();
+    })
+    .Build()
+    .Run();
+````
+
+`CoreHostService` is responsible for:
+
+*   Plugin loading
+*   Log initialization
+*   Configuration loading
+*   Security middleware registration
+
+---
+
+## II. Architecture Design
+
+### 1. Dual-Engine System
+
+| Engine | Description |
+|---|---|
+| **Data Engine** | Contains `CommonService`, `BaseRepository`, `SystemDbContext`, etc., for generic data operations |
+| **Plugin Engine** | Contains `PluginEngine`, `IPlugin`, `PluginConfig`, etc., for managing plugin lifecycle and dependency injection |
+
+---
+
+### 2. Three-Layer Architecture
+
+**Controller → Service → Repository**
+
+*   **Controller**: Solely responsible for HTTP entry points and response wrapping.
+*   **Service**: Business logic, validation, data aggregation.
+*   **Repository**: Operates the database via EF Core / Dapper.
+
+---
+
+### 3. Security Layer
+
+JWT validation is managed by `AuthenticationMiddleware`, which uniformly sets the user context.
+Fetching user information from parameters is forbidden. Use this instead:
+
+```csharp
+var userId = UserContext.Current.UserId;
 ```
+
+Whitelisted APIs are dynamically loaded from the `SecurityConfig` database table.
+
+---
+
+## III. Development Rules
+
+### 1. API Design
+
+*   Follow **RESTful** style.
+*   All APIs must return a unified structure:
+
+  ```csharp
+  public class ApiResponse {
+      public int Code { get; set; }
+      public string Message { get; set; } = string.Empty;
+      public object? Data { get; set; }
+  }
+  ```
+*   Generic API prefix: `/api/common`
+*   Plugin API prefix: `/api/plugins/{pluginName}`
+
+---
+
+### 2. Database Interaction Rules
+
+*   **Manual SQL string concatenation is forbidden**.
+*   All database operations must go through the Repository layer.
+*   **Data-Driven Configuration Tables**:
+
+    *   `TableAttributeConfig`: Controls table-level behavior.
+    *   `ColumnAttributeConfig`: Controls field display and editability.
+    *   `ColumnValidationRule`: Controls validation logic.
+
+---
+
+### 3. Plugin Development Rules
+
+#### Plugin Structure
+
+```
+/plugins
+ ├── UploadPlugin.dll
+ ├── AiServicePlugin.dll
+ └── ...
+```
+
+#### Plugin Interface Definition
+
+```csharp
+public interface IPlugin {
+    string Name { get; }
+    void Initialize(IServiceCollection services, IConfiguration config);
+    void Shutdown();
+}
+```
+
+#### Plugin Constraints
+
+*   Can have internal Controllers and Services.
+*   Do not use `[ApiController]` or `[Service]` attributes.
+*   Loading and unloading are controlled by the `PluginEngine`.
+*   Plugins can access platform-common services (like `CommonService`) via dependency injection.
+
+---
+
+## IV. Service Operation
+
+### 1. Windows Service Support
+
+The system must support the following execution modes:
+
+| Mode | Description |
+|---|---|
+| 🪟 **Windows Service** | Automatically registers as a system service via `UseWindowsService()` |
+| 🧩 **Console Mode** | Used for debugging and development |
+| 🐳 **Docker Mode** | For cloud deployment, adapts based on environment variables and configuration files |
+
+---
+
+### 2. Logging System
+
+#### Tech Stack
+
+*   **Serilog**: Core logging framework
+*   **Seq**: Visual logging platform
+*   **Microsoft.Extensions.Logging**: System compatibility interface
+
+#### Configuration Example
+
+```json
+"Serilog": {
+  "MinimumLevel": "Information",
+  "WriteTo": [
+    { "Name": "Console" },
+    { "Name": "File", "Args": { "path": "logs/log-.txt", "rollingInterval": "Day" } }
+  ]
+}
+```
+
+#### Logging Wrapper
+
+```csharp
+public static class LogHelper {
+    private static readonly ILogger _logger = Log.ForContext(typeof(LogHelper));
+
+    public static void Info(string message, object? data = null)
+        => _logger.Information("{Message} | {@Data}", message, data);
+
+    public static void Error(Exception ex, string message)
+        => _logger.Error(ex, message);
+}
+```
+
+#### Log Viewing Methods
+
+*   Real-time console output.
+*   Automatic daily log file rotation.
+*   Supports integration with **Seq / Kibana** for visual tracking.
+
+---
+
+## V. Unified Parameter Passing Mechanism (Map Parameter Passing)
+
+### 1. Principle
+
+*   The use of strongly-typed DTOs or ViewModels is forbidden.
+*   All parameters must be passed via `Dictionary<string, object>` (or its alias, `Map`).
+*   Enhance generality through key-value parsing.
+
+### 2. Example
+
+#### Controller Layer
+
+```csharp
+[HttpPost("save")]
+public async Task<ApiResponse> Save([FromBody] Dictionary<string, object> paramMap)
+{
+    return await _commonService.SaveAsync(paramMap);
+}
+```
+
+#### Service Layer
+
+```csharp
+public async Task<ApiResponse> SaveAsync(Dictionary<string, object> map)
+{
+    string table = map["table"].ToString()!;
+    var data = map["data"] as Dictionary<string, object>;
+    await _repository.SaveAsync(table, data!);
+    return ApiResponse.Success();
+}
+```
+
+> ⚙️ The Map pattern, when used with configuration tables, enables model-less, fully dynamic business processing.
+
+---
+
+## VI. Exception and Error Handling
+
+*   All business exceptions should uniformly use `BusinessException`.
+*   Global exceptions are caught by `GlobalExceptionMiddleware`.
+*   Response format:
+
+  ```json
+  { "code": 500, "message": "Internal Error", "data": null }
+  ```
+
+---
+
+## VII. Core Design Summary Matrix
+
+| Core Point | Description |
+|---|---|
+| 🧩 Data-Driven | All behavior is determined by configuration tables |
+| ⚙️ Plugin-Based Design | Features are loadable, unloadable, with an independent lifecycle |
+| 🧠 Map Parameter Passing | Eliminates model dependency with a generic data structure |
+| 🪟 Service Runnable | Supports Windows / Console / Docker modes |
+| 🪶 Logging System | Supports Serilog + Seq for unified log viewing |
+| 🔒 Unified Security | JWT + database whitelist |
+| 🧱 Architectural Standard | Controller → Service → Repository |
+| 🚫 Three Nos & Three Lows | Not complex, not repetitive, not destructive; less code, fewer calls, fewer dependencies |
+
+---
+
+## VIII. Versioning Policy
+
+*   A major version change (e.g., v2→v3) represents a modification to core design principles.
+*   A minor version change (e.g., v2.0→v2.1) represents an extension to the plugin or configuration system.
+*   A revision number change (e.g., v2.0.1) includes only bug fixes and logging enhancements.
+
+---
+
+## IX. Appendix
+
+### Recommended Directory Structure
+
+```
+/src
+ ├── CoreHostService.cs
+ ├── CommonService.cs
+ ├── PluginEngine.cs
+ ├── GlobalExceptionMiddleware.cs
+ ├── LogHelper.cs
+ ├── UserContext.cs
+ ├── Repository/
+ ├── Services/
+ ├── Controllers/
+ ├── Plugins/
+ └── appsettings.json
+```
+
+### Disclaimer
+
+All developers must adhere to this constitution during development.
+Any implementation that violates the principles of this constitution must be approved by the architecture committee before being merged into the main branch.
+
+---
+
+**📜 This document is the platform-level system constitution and serves as the supreme guideline for all architecture, development, deployment, and maintenance.**
