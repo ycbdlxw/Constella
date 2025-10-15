@@ -1,9 +1,28 @@
 {
-    "label": "publish",
-    "type": "shell",
-    "command": "dotnet publish -c Release",
-    "group": {
-        "kind": "build",
-        "isDefault": true
-    }
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "publish-full",
+            "type": "shell",
+            "command": "dotnet publish -c Release && dotnet script scripts/generate-manifest.csx",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        },
+        {
+            "label": "publish-update",
+            "type": "shell",
+            "command": "dotnet publish -c Release && dotnet script scripts/create-update.csx",
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        }
+    ]
 }
